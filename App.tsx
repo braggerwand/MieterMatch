@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { UserRole, LandlordData, TenantData, Stats } from './types';
 import { DEFAULT_STATS } from './constants';
@@ -6,6 +7,7 @@ import ChatAssistant from './components/ChatAssistant';
 import Workbench from './components/Workbench';
 import LegalPage from './components/LegalPage';
 import MietinteressentenProfil from './components/MietinteressentenProfil';
+import VermieterObjektProfil from './components/VermieterObjektProfil';
 import SuccessPage from './components/SuccessPage';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -15,11 +17,12 @@ const App: React.FC = () => {
   const [showWorkbench, setShowWorkbench] = useState(false);
   const [showLegal, setShowLegal] = useState<boolean>(false);
   const [showTenantProfile, setShowTenantProfile] = useState<boolean>(false);
+  const [showLandlordProfile, setShowLandlordProfile] = useState<boolean>(false);
   const [showSuccess, setShowSuccess] = useState<boolean>(false);
   const [tempTenantData, setTempTenantData] = useState<any>(null);
+  const [tempLandlordData, setTempLandlordData] = useState<any>(null);
   const [stats, setStats] = useState<Stats>(DEFAULT_STATS);
 
-  // Bearbeitungs-Status
   const [editIndices, setEditIndices] = useState<number[] | undefined>(undefined);
 
   const [landlords, setLandlords] = useState<LandlordData[]>([]);
@@ -31,47 +34,80 @@ const App: React.FC = () => {
     setShowWorkbench(false);
     setShowLegal(false);
     setShowTenantProfile(false);
+    setShowLandlordProfile(false);
     setShowSuccess(false);
   };
 
   const startEditMode = (indices: number[]) => {
-    // Indices im Code sind 0-basiert, die Anzeige im UI 1-basiert
     const zeroBasedIndices = indices.map(i => i - 1);
     setEditIndices(zeroBasedIndices);
-    setCurrentRole(UserRole.TENANT);
+    if (showTenantProfile) setCurrentRole(UserRole.TENANT);
+    if (showLandlordProfile) setCurrentRole(UserRole.LANDLORD);
     setShowTenantProfile(false);
+    setShowLandlordProfile(false);
   };
 
   const handleFinishChat = (data: any) => {
     if (currentRole === UserRole.TENANT) {
-      // Wenn wir im Edit-Modus waren, mergen wir die Daten
       const mergedData = editIndices ? { ...tempTenantData, ...data } : data;
       setTempTenantData(mergedData);
       setShowTenantProfile(true);
       setCurrentRole(UserRole.NONE);
-      setEditIndices(undefined);
-    } else {
-      finalizeLandlord(data);
+    } else if (currentRole === UserRole.LANDLORD) {
+      const mergedData = editIndices ? { ...tempLandlordData, ...data } : data;
+      setTempLandlordData(mergedData);
+      setShowLandlordProfile(true);
+      setCurrentRole(UserRole.NONE);
     }
+    setEditIndices(undefined);
   };
 
-  const finalizeLandlord = (data: any) => {
+  const finalizeLandlord = (updatedData: Partial<LandlordData>) => {
     const timestamp = new Date().toISOString();
     const randomId = Math.floor(1000 + Math.random() * 9000);
+    
+    // Warmmiete berechnen
+    const cold = Number(updatedData.rentCold) || 0;
+    const extra = Number(updatedData.serviceCharges) || 0;
+    const park = Number(updatedData.parkingRent) || 0;
+    const other = Number(updatedData.otherCosts) || 0;
+    const rentWarm = cold + extra + park + other;
+
+    // PLZ aus Adresse extrahieren (5 Ziffern)
+    const zipCodeMatch = (updatedData.address || '').match(/\b\d{5}\b/);
+    const zipCode = zipCodeMatch ? zipCodeMatch[0] : 'unbekannt';
+
     const newData: LandlordData = {
-      ...data,
+      address: updatedData.address || '',
+      sqm: Number(updatedData.sqm) || 0,
+      rooms: Number(updatedData.rooms) || 0,
+      floor: updatedData.floor || '',
+      gardenOrBalcony: updatedData.gardenOrBalcony || '',
+      parkingDetails: updatedData.parkingDetails || '',
+      kitchenDetails: updatedData.kitchenDetails || '',
+      buildingAge: updatedData.buildingAge || '',
+      rentCold: cold,
+      serviceCharges: extra,
+      parkingRent: park,
+      otherCosts: other,
+      rentWarm: rentWarm,
+      zipCode: zipCode,
+      email: updatedData.email || '',
+      phone: updatedData.phone || '',
       id: `V-${randomId}`,
-      rentWarm: Number(data.rentWarm) || 0,
-      sqm: Number(data.sqm) || 0,
-      rooms: Number(data.rooms) || 0,
-      createdAt: timestamp
+      propertyTitle: updatedData.address ? updatedData.address.split(',')[0] : 'Mietobjekt',
+      status: 'nicht aktiv', // Standardmäßig auf 'nicht aktiv' setzen
+      createdAt: timestamp,
+      images: updatedData.images
     };
+    
     setLandlords(prev => [...prev, newData]);
     setStats(prev => ({ 
       ...prev, 
       totalProperties: prev.totalProperties + 1, 
       currentProperties: prev.currentProperties + 1 
     }));
+    setShowLandlordProfile(false);
     setShowWorkbench(true);
   };
 
@@ -96,7 +132,7 @@ const App: React.FC = () => {
       personalIntro: updatedData.personalIntro,
       profileImage: updatedData.profileImage,
       id: `M-${randomId}`,
-      status: 'Profil nicht bestätigt', // Initialer Status gemäß Vorgabe
+      status: 'Profil nicht bestätigt', 
       createdAt: timestamp
     };
     setTenants(prev => [...prev, newData]);
@@ -106,7 +142,6 @@ const App: React.FC = () => {
       currentProfiles: prev.currentProfiles + 1 
     }));
     
-    // Nach der Bestätigung zeigen wir dem Mieter die Erfolgsseite
     setShowTenantProfile(false);
     setShowSuccess(true);
   };
@@ -116,8 +151,10 @@ const App: React.FC = () => {
     setShowWorkbench(false);
     setShowLegal(false);
     setShowTenantProfile(false);
+    setShowLandlordProfile(false);
     setShowSuccess(false);
     setTempTenantData(null);
+    setTempLandlordData(null);
   };
 
   return (
@@ -139,6 +176,13 @@ const App: React.FC = () => {
             onCancel={() => setShowTenantProfile(false)} 
             onEdit={startEditMode}
           />
+        ) : showLandlordProfile ? (
+          <VermieterObjektProfil 
+            data={tempLandlordData} 
+            onConfirm={finalizeLandlord} 
+            onCancel={() => setShowLandlordProfile(false)} 
+            onEdit={startEditMode}
+          />
         ) : showWorkbench ? (
           <Workbench 
             landlords={landlords} 
@@ -151,7 +195,8 @@ const App: React.FC = () => {
             role={currentRole} 
             onCancel={() => {
               if (editIndices) {
-                setShowTenantProfile(true);
+                if (currentRole === UserRole.TENANT) setShowTenantProfile(true);
+                if (currentRole === UserRole.LANDLORD) setShowLandlordProfile(true);
                 setCurrentRole(UserRole.NONE);
               } else {
                 setCurrentRole(UserRole.NONE);
@@ -159,7 +204,7 @@ const App: React.FC = () => {
             }} 
             onFinish={handleFinishChat}
             editIndices={editIndices}
-            initialData={tempTenantData}
+            initialData={currentRole === UserRole.TENANT ? tempTenantData : tempLandlordData}
           />
         ) : (
           <LandingPage onStart={startAssistant} stats={stats} />

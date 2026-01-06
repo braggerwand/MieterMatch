@@ -4,7 +4,7 @@ import {
   Send, ArrowLeft, Bot, Sparkles, Loader2, 
   MapPin, Maximize, Layout, Layers, Leaf, Car, Utensils, 
   Construction, Banknote, Wallet, Briefcase, FileText, Mail, Smartphone,
-  Info, ChevronRight, CheckCircle, Lightbulb
+  Info, ChevronRight, CheckCircle, Lightbulb, Home as HomeIcon, Coins
 } from 'lucide-react';
 import { GoogleGenAI, Type } from "@google/genai";
 
@@ -148,14 +148,118 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ role, onCancel, onFinish,
   ];
 
   const landlordQuestions: QuestionConfig[] = [
-    { question: "Ihre E-Mail-Adresse?", hint: "Für wichtige Benachrichtigungen.", placeholder: "beispiel@mail.de", field: "email", category: "Kontakt", icon: <Mail size={24} className="text-blue-400" /> },
-    { question: "Mobilfunknummer?", hint: "Für SMS-Benachrichtigungen.", placeholder: "+49 123...", field: "phone", category: "Kontakt", icon: <Smartphone size={24} className="text-blue-400" /> },
-    { question: "Titel Ihres Mietobjekts?", hint: "Ein ansprechender Name.", placeholder: "z.B. Modernes Loft", field: "propertyTitle", category: "Objekt", icon: <HomeIcon size={24} className="text-blue-400" /> },
-    { question: "In welcher PLZ liegt die Immobilie?", hint: "Wichtig für das Matching.", placeholder: "z.B. 10115", field: "zipCode", category: "Objekt", icon: <MapPin size={24} className="text-blue-400" /> },
-    { question: "Wie hoch ist die Warmmiete?", hint: "Monatlicher Gesamtbetrag.", placeholder: "z.B. 1200", field: "rentWarm", category: "Finanzen", icon: <Banknote size={24} className="text-blue-400" /> },
-    { question: "Wohnfläche in qm?", hint: "Die Größe des Objekts.", placeholder: "z.B. 80", field: "sqm", category: "Objekt", icon: <Maximize size={24} className="text-blue-400" /> },
-    { question: "Zimmeranzahl?", hint: "Ohne Küche/Bad.", placeholder: "z.B. 3", field: "rooms", category: "Objekt", icon: <Layout size={24} className="text-blue-400" /> },
-    { question: "Kurze Beschreibung?", hint: "Besonderheiten des Objekts.", placeholder: "Beschreibung hier...", field: "description", category: "Objekt", icon: <FileText size={24} className="text-blue-400" /> }
+    { 
+      question: "Wo befindet sich Ihre Immobilie?", 
+      hint: "Geben Sie die Adresse Ihrer Immobilie ein.", 
+      placeholder: "z.B. Schlossstraße 1, 12163 Berlin", 
+      field: "address",
+      category: "Lage & Größe",
+      icon: <MapPin size={24} className="text-blue-400" />
+    },
+    { 
+      question: "Wie groß ist die Immobilie?", 
+      hint: "Geben Sie die Wohnfläche ihrer Immobilien an.", 
+      placeholder: "z.B. 85", 
+      field: "sqm",
+      category: "Lage & Größe",
+      icon: <Maximize size={24} className="text-blue-400" />
+    },
+    { 
+      question: "Wie viele Zimmer hat Ihre Immobilie?", 
+      hint: "Geben Sie an, wie viel Wohn-, und Schlafzimmer (ohne Küche und Bäder) Ihre Immobilie hat.", 
+      placeholder: "z.B. 3.5", 
+      field: "rooms",
+      category: "Lage & Größe",
+      icon: <Layout size={24} className="text-blue-400" />
+    },
+    { 
+      question: "In welchem Stockwerk befindet sich die Wohnung?", 
+      hint: "Zum Beispiel: Erdgeschoss, Dachgeschoss oder Zwischengeschoss.", 
+      placeholder: "z.B. 2. Obergeschoss", 
+      field: "floor",
+      category: "Details",
+      icon: <Layers size={24} className="text-blue-400" />
+    },
+    { 
+      question: "Hat Ihre Immobilie einen Garten oder Balkon?", 
+      hint: "Geben Sie an welche dieser Flächen für den Mieter zur Verfügung stehen.", 
+      placeholder: "z.B. Balkon und Mitbenutzung Garten", 
+      field: "gardenOrBalcony",
+      category: "Details",
+      icon: <Leaf size={24} className="text-blue-400" />
+    },
+    { 
+      question: "Verfügt Ihre Immobilie über eine Garage/Stellplatz?", 
+      hint: "Geben Sie an um welche Art von Stellplatz es sich handelt (z.B. Duplex-Parker).", 
+      placeholder: "z.B. Tiefgaragen-Stellplatz", 
+      field: "parkingDetails",
+      category: "Details",
+      icon: <Car size={24} className="text-blue-400" />
+    },
+    { 
+      question: "Verfügt die Immobilie über eine Einbauküche?", 
+      hint: "Wenn ja, beschreiben Sie die Einbauküche.", 
+      placeholder: "z.B. Ja, voll ausgestattet mit Markengeräten", 
+      field: "kitchenDetails",
+      category: "Ausstattung",
+      icon: <Utensils size={24} className="text-blue-400" />
+    },
+    { 
+      question: "Wie alt ist Ihre Immobilie?", 
+      hint: "z.B. Neubau, hochwertig modernisierter Altbau etc.", 
+      placeholder: "z.B. Erstbezug nach Sanierung", 
+      field: "buildingAge",
+      category: "Ausstattung",
+      icon: <Construction size={24} className="text-blue-400" />
+    },
+    { 
+      question: "Wie hoch ist die monatliche Kaltmiete?", 
+      hint: "Geben Sie hier die Summe der monatlichen Kaltmiete für Ihr Objekt an.", 
+      placeholder: "z.B. 950", 
+      field: "rentCold",
+      category: "Kosten",
+      icon: <Banknote size={24} className="text-blue-400" />
+    },
+    { 
+      question: "Wie hoch sind die Nebenkosten?", 
+      hint: "Geben Sie hier die Summe der monatlichen Nebenkostenvorauszahlung für Ihr Objekt an.", 
+      placeholder: "z.B. 180", 
+      field: "serviceCharges",
+      category: "Kosten",
+      icon: <Coins size={24} className="text-blue-400" />
+    },
+    { 
+      question: "Wie hoch ist die Stellplatzmiete?", 
+      hint: "Geben Sie hier die Summe der monatlichen Stellplatzmiete für Ihr Objekt an.", 
+      placeholder: "z.B. 60", 
+      field: "parkingRent",
+      category: "Kosten",
+      icon: <Car size={24} className="text-blue-400" />
+    },
+    { 
+      question: "Gibt es weitere Kosten?", 
+      hint: "Geben Sie hier die Summe der monatlichen sonstigen Kosten an und beschreiben Sie wofür diese sind. Wenn nicht, 'keine sonstigen Kosten'.", 
+      placeholder: "z.B. keine sonstigen Kosten", 
+      field: "otherCosts",
+      category: "Kosten",
+      icon: <Wallet size={24} className="text-blue-400" />
+    },
+    { 
+      question: "E-Mailadresse für die Kontaktaufnahme?", 
+      hint: "Dies ist eine Pflichtangabe. Achten Sie auf das richtige Format.", 
+      placeholder: "ihre-mail@anbieter.de", 
+      field: "email",
+      category: "Kontakt",
+      icon: <Mail size={24} className="text-blue-400" />
+    },
+    { 
+      question: "Wollen Sie auch eine SMS erhalten?", 
+      hint: "Geben Sie Ihre Mobilfunknummer im Format +49 170 123456 ein oder 'Nein'.", 
+      placeholder: "+49 171 9876543 oder Nein", 
+      field: "phone",
+      category: "Kontakt",
+      icon: <Smartphone size={24} className="text-blue-400" />
+    }
   ];
 
   const allQuestions = role === UserRole.LANDLORD ? landlordQuestions : tenantQuestions;
@@ -192,16 +296,21 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ role, onCancel, onFinish,
   }, [messages, isTyping]);
 
   const handleAutoFill = async () => {
-    if (role !== UserRole.TENANT || editIndices) return;
+    if (isAutoFilling) return;
     setIsAutoFilling(true);
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
+
     try {
-      const response = await ai.models.generateContent({
-        model: "gemini-3-flash-preview",
-        contents: "Generiere ein realistisches deutsches Mieterprofil als JSON für alle 14 Felder inkl. personalIntro='Schreiben Sie etwas über sich:'.",
-        config: {
-          responseMimeType: "application/json",
-          responseSchema: {
+      const apiKey = process.env.API_KEY;
+      if (!apiKey) throw new Error("API Key fehlt.");
+
+      const ai = new GoogleGenAI({ apiKey });
+      
+      const prompt = role === UserRole.TENANT 
+        ? "Generiere ein realistisches deutsches Mieterprofil als JSON für alle 14 Felder. Nutze echte deutsche Orte und realistische Gehälter. Felder: desiredLocation, minSqm, minRooms, preferredFloor, gardenOrBalcony, parkingNeeded, kitchenIncluded, buildingCondition, maxRent, householdIncome, incomeType, incomeDetails, email, phone. personalIntro='Schreiben Sie etwas über sich'."
+        : "Generiere ein realistisches deutsches Immobilienobjekt (Vermieter) als JSON. Felder: address, sqm, rooms, floor, gardenOrBalcony, parkingDetails, kitchenDetails, buildingAge, rentCold, serviceCharges, parkingRent, otherCosts, email, phone.";
+
+      const schema = role === UserRole.TENANT 
+        ? {
             type: Type.OBJECT,
             properties: {
               desiredLocation: { type: Type.STRING },
@@ -219,14 +328,50 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ role, onCancel, onFinish,
               email: { type: Type.STRING },
               phone: { type: Type.STRING },
               personalIntro: { type: Type.STRING },
-            }
+            },
+            required: ["desiredLocation", "minSqm", "minRooms", "preferredFloor", "gardenOrBalcony", "parkingNeeded", "kitchenIncluded", "buildingCondition", "maxRent", "householdIncome", "incomeType", "incomeDetails", "email", "phone"]
           }
+        : {
+            type: Type.OBJECT,
+            properties: {
+              address: { type: Type.STRING },
+              sqm: { type: Type.NUMBER },
+              rooms: { type: Type.NUMBER },
+              floor: { type: Type.STRING },
+              gardenOrBalcony: { type: Type.STRING },
+              parkingDetails: { type: Type.STRING },
+              kitchenDetails: { type: Type.STRING },
+              buildingAge: { type: Type.STRING },
+              rentCold: { type: Type.NUMBER },
+              serviceCharges: { type: Type.NUMBER },
+              parkingRent: { type: Type.NUMBER },
+              otherCosts: { type: Type.NUMBER },
+              email: { type: Type.STRING },
+              phone: { type: Type.STRING }
+            },
+            required: ["address", "sqm", "rooms", "floor", "gardenOrBalcony", "parkingDetails", "kitchenDetails", "buildingAge", "rentCold", "serviceCharges", "parkingRent", "otherCosts", "email", "phone"]
+          };
+
+      const result = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: [{ parts: [{ text: prompt }] }],
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: schema
         }
       });
-      const autoData = JSON.parse(response.text);
+      
+      const text = result.text;
+      if (!text) throw new Error("Keine Antwort von der KI erhalten.");
+
+      // Robustes Parsing: Entferne evtl. vorhandene Markdown-Blöcke
+      const cleanJson = text.replace(/```json\n?|```/g, "").trim();
+      const autoData = JSON.parse(cleanJson);
+      
       onFinish(autoData);
     } catch (error) {
-      alert("Fehler beim Auto-Fill.");
+      console.error("Auto-Fill Error:", error);
+      alert("Fehler beim Auto-Fill. Bitte stellen Sie sicher, dass Ihr API-Key gültig ist und versuchen Sie es erneut.");
     } finally {
       setIsAutoFilling(false);
     }
@@ -274,14 +419,13 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ role, onCancel, onFinish,
 
   return (
     <div className="fixed inset-0 z-[60] bg-[#05070a] flex flex-col font-sans">
-      {/* Header mit erweitertem Fortschritt */}
       <div className="h-24 border-b border-white/5 flex items-center px-8 justify-between bg-black/40 backdrop-blur-xl relative z-10">
         <div className="flex items-center gap-6">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-indigo-700 flex items-center justify-center shrink-0 shadow-lg shadow-indigo-600/20">
+          <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${role === UserRole.LANDLORD ? 'from-blue-500 to-blue-700' : 'from-indigo-500 to-indigo-700'} flex items-center justify-center shrink-0 shadow-lg`}>
             <Bot size={30} className="text-white" />
           </div>
           <div className="flex flex-col">
-            <h2 className="font-black text-[10px] uppercase tracking-[0.3em] text-indigo-400 mb-1">
+            <h2 className={`font-black text-[10px] uppercase tracking-[0.3em] ${role === UserRole.LANDLORD ? 'text-blue-400' : 'text-indigo-400'} mb-1`}>
               {role === UserRole.LANDLORD ? "Vermieter-Assistent" : (editIndices ? "Profil-Update" : "Mieter-Assistent")}
             </h2>
             <div className="flex items-center gap-3">
@@ -292,7 +436,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ role, onCancel, onFinish,
             </div>
             <div className="h-1.5 w-48 bg-white/5 rounded-full overflow-hidden mt-2 border border-white/5">
               <div 
-                className="h-full bg-indigo-500 transition-all duration-700 ease-in-out shadow-[0_0_10px_rgba(99,102,241,0.5)]"
+                className={`h-full ${role === UserRole.LANDLORD ? 'bg-blue-500' : 'bg-indigo-500'} transition-all duration-700 ease-in-out shadow-lg`}
                 style={{ width: `${((stepIndex + 1) / totalSteps) * 100}%` }}
               ></div>
             </div>
@@ -300,14 +444,14 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ role, onCancel, onFinish,
         </div>
 
         <div className="flex items-center gap-4">
-          {role === UserRole.TENANT && !editIndices && (
+          {!editIndices && (
             <button 
               onClick={handleAutoFill} 
               disabled={isAutoFilling} 
-              className="hidden lg:flex px-6 py-3 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 rounded-2xl text-indigo-400 text-[11px] font-black uppercase tracking-[0.15em] items-center gap-3 transition-all active:scale-95 shadow-sm"
+              className={`hidden lg:flex px-6 py-3 ${role === UserRole.LANDLORD ? 'bg-blue-500/10 hover:bg-blue-500/20 border-blue-500/30 text-blue-400' : 'bg-indigo-500/10 hover:bg-indigo-500/20 border-indigo-500/30 text-indigo-400'} border rounded-2xl text-[11px] font-black uppercase tracking-[0.15em] items-center gap-3 transition-all active:scale-95 shadow-sm min-w-[140px] justify-center`}
             >
               {isAutoFilling ? <Loader2 size={16} className="animate-spin" /> : <Sparkles size={16} />}
-              KI-Entwurf erstellen
+              Auto-Fill
             </button>
           )}
           <button 
@@ -319,30 +463,27 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ role, onCancel, onFinish,
         </div>
       </div>
 
-      {/* Chat Area - Dynamischere Messages */}
       <div className="flex-grow overflow-y-auto p-6 scroll-smooth custom-scrollbar" ref={scrollRef}>
         <div className="max-w-4xl mx-auto space-y-12 py-10">
           {messages.map((m, i) => (
             <div key={i} className={`flex ${m.sender === 'user' ? 'justify-end' : 'justify-start'} animate-fade-in`}>
               {m.sender === 'bot' ? (
                 <div className="max-w-[95%] w-full">
-                  <div className="glass-card border-indigo-500/20 rounded-[3rem] rounded-tl-none p-10 relative overflow-hidden shadow-2xl transition-all hover:border-indigo-500/40">
-                    <div className="absolute -top-10 -right-10 w-40 h-40 bg-indigo-600/5 blur-[60px] pointer-events-none"></div>
-                    
+                  <div className={`glass-card ${role === UserRole.LANDLORD ? 'border-blue-500/20 hover:border-blue-500/40' : 'border-indigo-500/20 hover:border-indigo-500/40'} rounded-[3rem] rounded-tl-none p-10 relative overflow-hidden shadow-2xl transition-all`}>
                     <div className="flex flex-col md:flex-row items-start gap-8">
-                      <div className="w-16 h-16 rounded-[1.25rem] bg-indigo-500/10 flex items-center justify-center shrink-0 border border-indigo-500/20 shadow-inner group">
+                      <div className={`w-16 h-16 rounded-[1.25rem] ${role === UserRole.LANDLORD ? 'bg-blue-500/10 border-blue-500/20' : 'bg-indigo-500/10 border-indigo-500/20'} flex items-center justify-center shrink-0 border shadow-inner group`}>
                         <div className="transition-transform duration-500 group-hover:scale-110">
-                          {m.icon || <Bot size={32} className="text-indigo-400" />}
+                          {m.icon || <Bot size={32} className={role === UserRole.LANDLORD ? "text-blue-400" : "text-indigo-400"} />}
                         </div>
                       </div>
                       
                       <div className="flex-grow space-y-5">
                         <div className="flex items-center gap-3">
-                           <div className="px-3 py-1 rounded-lg bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 text-[9px] font-black uppercase tracking-[0.2em]">
+                           <div className={`px-3 py-1 rounded-lg ${role === UserRole.LANDLORD ? 'bg-blue-500/10 border-blue-500/20 text-blue-400' : 'bg-indigo-500/10 border-indigo-500/20 text-indigo-400'} text-[9px] font-black uppercase tracking-[0.2em]`}>
                              {m.category || "Allgemein"}
                            </div>
                            <div className="px-3 py-1 rounded-lg bg-white/5 border border-white/10 text-gray-500 text-[9px] font-black uppercase tracking-[0.2em]">
-                             Schritt {m.qNum}
+                             Frage {m.qNum}
                            </div>
                         </div>
                         
@@ -351,12 +492,12 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ role, onCancel, onFinish,
                         </h3>
                         
                         {m.hint && (
-                          <div className="flex gap-4 p-5 rounded-3xl bg-indigo-500/[0.03] border border-indigo-500/10 items-start group/hint">
+                          <div className={`flex gap-4 p-5 rounded-3xl ${role === UserRole.LANDLORD ? 'bg-blue-500/[0.03] border-blue-500/10' : 'bg-indigo-500/[0.03] border-indigo-500/10'} border items-start group/hint`}>
                             <div className="mt-1">
-                              <Lightbulb size={18} className="text-indigo-400/70 group-hover/hint:text-indigo-400 transition-colors" />
+                              <Lightbulb size={18} className={`${role === UserRole.LANDLORD ? 'text-blue-400/70' : 'text-indigo-400/70'} transition-colors`} />
                             </div>
                             <p className="text-sm md:text-base text-gray-400 italic leading-relaxed">
-                              <span className="text-indigo-400/60 font-black uppercase tracking-tighter text-[10px] block mb-1 not-italic">Tipp vom Assistenten</span>
+                              <span className={`${role === UserRole.LANDLORD ? 'text-blue-400/60' : 'text-indigo-400/60'} font-black uppercase tracking-tighter text-[10px] block mb-1 not-italic`}>Tipp vom Assistenten</span>
                               {m.hint}
                             </p>
                           </div>
@@ -367,10 +508,10 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ role, onCancel, onFinish,
                 </div>
               ) : (
                 <div className="max-w-[70%] transform translate-y-[-10px]">
-                  <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 text-white p-6 px-8 rounded-[2.5rem] rounded-tr-none shadow-xl shadow-indigo-600/10 border border-indigo-400/20">
+                  <div className={`bg-gradient-to-br ${role === UserRole.LANDLORD ? 'from-blue-600 to-blue-700' : 'from-indigo-600 to-indigo-700'} text-white p-6 px-8 rounded-[2.5rem] rounded-tr-none shadow-xl border border-white/10`}>
                     <p className="text-lg md:text-xl font-bold tracking-tight">{m.text}</p>
                     <div className="flex justify-end mt-2 opacity-60">
-                       <CheckCircle size={14} className="text-indigo-100" />
+                       <CheckCircle size={14} className="text-white" />
                     </div>
                   </div>
                 </div>
@@ -380,20 +521,19 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ role, onCancel, onFinish,
 
           {isTyping && (
             <div className="flex justify-start animate-pulse">
-              <div className="glass-card px-6 py-4 rounded-3xl rounded-tl-none flex gap-2 border-indigo-500/20">
-                <div className="w-2.5 h-2.5 bg-indigo-500 rounded-full animate-bounce"></div>
-                <div className="w-2.5 h-2.5 bg-indigo-500 rounded-full animate-bounce [animation-delay:0.2s]"></div>
-                <div className="w-2.5 h-2.5 bg-indigo-500 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+              <div className={`glass-card px-6 py-4 rounded-3xl rounded-tl-none flex gap-2 ${role === UserRole.LANDLORD ? 'border-blue-500/20' : 'border-indigo-500/20'}`}>
+                <div className={`w-2.5 h-2.5 ${role === UserRole.LANDLORD ? 'bg-blue-500' : 'bg-indigo-500'} rounded-full animate-bounce`}></div>
+                <div className={`w-2.5 h-2.5 ${role === UserRole.LANDLORD ? 'bg-blue-500' : 'bg-indigo-500'} rounded-full animate-bounce [animation-delay:0.2s]`}></div>
+                <div className={`w-2.5 h-2.5 ${role === UserRole.LANDLORD ? 'bg-blue-500' : 'bg-indigo-500'} rounded-full animate-bounce [animation-delay:0.4s]`}></div>
               </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Input Area - Schwebendes Design */}
       <div className="p-8 bg-gradient-to-t from-black via-black/80 to-transparent pt-12 relative z-10">
         <div className="max-w-4xl mx-auto relative">
-          <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500/20 to-blue-500/20 rounded-[2.5rem] blur opacity-50"></div>
+          <div className={`absolute -inset-1 bg-gradient-to-r ${role === UserRole.LANDLORD ? 'from-blue-500/20 to-indigo-500/20' : 'from-indigo-500/20 to-blue-500/20'} rounded-[2.5rem] blur opacity-50`}></div>
           <div className="relative group">
             <input 
               type="text"
@@ -407,16 +547,15 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ role, onCancel, onFinish,
             <button 
               onClick={handleSend} 
               disabled={!userInput.trim()} 
-              className="absolute right-4 top-4 bottom-4 w-16 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-20 disabled:grayscale rounded-full flex items-center justify-center transition-all shadow-lg shadow-indigo-600/30 active:scale-90 group overflow-hidden"
+              className={`absolute right-4 top-4 bottom-4 w-16 ${role === UserRole.LANDLORD ? 'bg-blue-600 hover:bg-blue-500' : 'bg-indigo-600 hover:bg-indigo-500'} disabled:opacity-20 disabled:grayscale rounded-full flex items-center justify-center transition-all shadow-lg active:scale-90 group overflow-hidden`}
             >
-              <div className="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"></div>
               <Send size={28} className="text-white relative z-10 transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </button>
           </div>
           
           <div className="flex justify-between items-center mt-5 px-6">
              <div className="flex items-center gap-3">
-               <span className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></span>
+               <span className={`w-2 h-2 rounded-full ${role === UserRole.LANDLORD ? 'bg-blue-500' : 'bg-indigo-500'} animate-pulse`}></span>
                <p className="text-[10px] text-gray-500 uppercase tracking-[0.25em] font-black">
                  Drücken Sie Enter zum Senden
                </p>
@@ -435,11 +574,5 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ role, onCancel, onFinish,
     </div>
   );
 };
-
-const HomeIcon = ({ size, className }: { size: number, className?: string }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
-    <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
-  </svg>
-);
 
 export default ChatAssistant;

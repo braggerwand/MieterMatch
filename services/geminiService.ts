@@ -2,11 +2,11 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { LandlordData, TenantData, MatchResult } from "../types";
 
-const ai = new GoogleGenAI({ apiKey: (process.env.API_KEY as string) });
+// Initialisierung gemäß Senior Lead Developer Richtlinien: process.env.API_KEY direkt verwenden
+const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
 export const getAUMatching = async (property: LandlordData, tenant: TenantData): Promise<MatchResult> => {
-  // Korrektur: Wir verwenden existierende Felder aus TenantData (householdIncome, incomeType, incomeDetails, desiredLocation)
-  // anstelle von nicht definierten Feldern (occupants, searchDescription).
+  // Korrektur: Wir verwenden existierende Felder aus TenantData und die neuen Felder aus LandlordData.
   const prompt = `
     Analysiere die Übereinstimmung zwischen einem Mietobjekt und einem Mietinteressenten.
     Objekt: ${property.propertyTitle}, Warmmiete: ${property.rentWarm}€, Zimmer: ${property.rooms}, Lage (PLZ): ${property.zipCode}.
@@ -38,7 +38,8 @@ export const getAUMatching = async (property: LandlordData, tenant: TenantData):
       }
     });
 
-    const data = JSON.parse(response.text);
+    // .text ist eine Eigenschaft, kein Methodenaufruf
+    const data = JSON.parse(response.text.trim());
     return {
       tenant,
       score: data.score,

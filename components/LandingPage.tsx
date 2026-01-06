@@ -30,6 +30,7 @@ const LandingPage: React.FC<LandingPageProps> = ({ onStart, stats }) => {
         
         <p className="text-xl text-gray-400 mb-12 max-w-3xl mx-auto leading-relaxed">
           Lassen Sie Ihre Mietangebote zu sich kommen. <br /><br />
+          oder <br /><br />
           Wählen Sie Ihren passenden Mieter.
         </p>
 
