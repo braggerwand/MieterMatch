@@ -5,17 +5,15 @@
 
 const getBackendUrl = () => {
   const host = window.location.hostname;
-  const protocol = window.location.protocol;
   
-  // Wenn wir auf localhost sind, nutzen wir localhost
+  // Wenn wir auf localhost sind
   if (host === 'localhost' || host === '127.0.0.1' || !host) {
     return `http://127.0.0.1:5000/api`;
   }
   
   // In einer VM/Google Cloud nutzen wir die aktuelle IP/Domain auf Port 5000
-  // Hinweis: Wenn die Seite via HTTPS geladen wird, muss auch das Backend via HTTPS (Proxy) erreichbar sein.
-  // Für die Entwicklung auf VMs nutzen wir meistens die IP.
-  return `${protocol}//${host}:5000/api`;
+  // Wir nutzen explizit http, da Flask standardmäßig nicht auf https lauscht
+  return `http://${host}:5000/api`;
 };
 
 const BACKEND_URL = getBackendUrl();
@@ -71,7 +69,6 @@ export const sendVerificationCode = async (email: string, phone: string, code: s
     };
   } catch (error: any) {
     console.error("Brevo Service Netzwerkfehler:", error);
-    let message = `Konnte Backend unter ${BACKEND_URL} nicht erreichen.`;
     
     if (error.name === 'AbortError') {
       return { success: false, errorType: 'TIMEOUT', details: "Das Backend antwortet zu langsam." };
@@ -80,7 +77,7 @@ export const sendVerificationCode = async (email: string, phone: string, code: s
     return { 
       success: false, 
       errorType: 'NETWORK_ERROR', 
-      details: `${message} Bitte prüfen Sie, ob "python3 main.py" im Terminal läuft und Port 5000 offen ist.` 
+      details: `Konnte Backend unter ${BACKEND_URL} nicht erreichen. Bitte stellen Sie sicher, dass 'python3 main.py' läuft und Port 5000 in der Firewall offen ist.` 
     };
   }
 };
