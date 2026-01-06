@@ -1,6 +1,5 @@
-
 import React from 'react';
-import { Home } from 'lucide-react';
+import { Home, LayoutDashboard } from 'lucide-react';
 
 interface NavbarProps {
   onHome: () => void;
@@ -21,7 +20,13 @@ const Navbar: React.FC<NavbarProps> = ({ onHome, onWorkbench }) => {
       </div>
 
       <div className="flex items-center gap-6">
-        {/* Die Workbench-Schaltfläche wurde gemäß PO-Anweisung entfernt, um den Fokus auf den Prozess-Start zu legen */}
+        <button 
+          onClick={onWorkbench}
+          className="flex items-center gap-2 px-4 py-2 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl transition-all group"
+        >
+          <LayoutDashboard size={18} className="text-indigo-400 group-hover:text-white" />
+          <span className="text-sm font-bold text-gray-300 group-hover:text-white">Cockpit</span>
+        </button>
       </div>
     </nav>
   );

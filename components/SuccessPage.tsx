@@ -3,9 +3,12 @@ import { CheckCircle, ArrowRight, PartyPopper, Info } from 'lucide-react';
 
 interface SuccessPageProps {
   onFinish: () => void;
+  type?: 'profile' | 'offer';
 }
 
-const SuccessPage: React.FC<SuccessPageProps> = ({ onFinish }) => {
+const SuccessPage: React.FC<SuccessPageProps> = ({ onFinish, type = 'profile' }) => {
+  const isOffer = type === 'offer';
+
   return (
     <div className="min-h-screen pt-32 pb-16 px-6 bg-[#05070a] flex items-center justify-center animate-fade-in">
       <div className="max-w-3xl w-full text-center">
@@ -26,7 +29,7 @@ const SuccessPage: React.FC<SuccessPageProps> = ({ onFinish }) => {
           
           <div className="space-y-6 mb-12">
             <h2 className="text-2xl md:text-3xl font-bold text-indigo-400">
-              Ihr Profil wurde gespeichert
+              {isOffer ? "Ihr Angebot wurde gespeichert" : "Ihr Profil wurde gespeichert"}
             </h2>
             
             <h2 className="text-xl md:text-2xl font-medium text-gray-300 leading-relaxed max-w-2xl mx-auto">
@@ -36,26 +39,33 @@ const SuccessPage: React.FC<SuccessPageProps> = ({ onFinish }) => {
 
           <div className="p-8 rounded-[2rem] bg-indigo-500/5 border border-indigo-500/10 mb-6">
             <h1 className="text-xl md:text-2xl font-bold text-white leading-relaxed">
-              Ihr Profil für die Objektsuche ist dann aktiv und wird dem Anbieter zur Auswahl angezeigt, sobald ein Objekt eingestellt wird, das Ihren Vorgaben entspricht.
+              {isOffer 
+                ? "Ihr Mietangebot ist dann aktiv und wird dem Mietinteressenten zur Bestätigung übermittele. Er wird sich dann bei Ihnen melden wenn er Interesse an Ihrer Immobilie hat um einen Besichtigungstermin zu vereinbaren."
+                : "Ihr Profil für die Objektsuche ist dann aktiv und wird dem Anbieter zur Auswahl angezeigt, sobald ein Objekt eingestellt wird, das Ihren Vorgaben entspricht."
+              }
             </h1>
           </div>
 
           <p className="text-gray-400 text-sm mb-12 flex items-center justify-center gap-2 italic">
             <Info size={14} className="text-indigo-400" />
-            Sie können Ihr Mieterprofil jederzeit ändern oder löschen
+            {isOffer ? "Sie können Ihre Daten jederzeit ändern oder löschen." : "Sie können Ihr Mieterprofil jederzeit ändern oder löschen"}
           </p>
 
           <button 
             onClick={onFinish}
             className="w-full py-6 bg-indigo-600 hover:bg-indigo-500 rounded-2xl font-black text-white shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-3 transition-all active:scale-[0.98] uppercase tracking-widest text-sm"
           >
-            Beenden und Profil per EMail oder SMS zur Aktivierung bestätigen
+            {isOffer 
+              ? "Beenden und Angebot per EMail oder SMS zum Versand an den Mietinteressenten bestätigen"
+              : "Beenden und Profil per EMail oder SMS zur Aktivierung bestätigen"
+            }
             <ArrowRight size={20} />
           </button>
         </div>
         
         <p className="mt-8 text-gray-500 text-sm flex items-center justify-center gap-2">
-          <PartyPopper size={16} /> Viel Erfolg bei Ihrer Wohnungssuche!
+          <PartyPopper size={16} /> 
+          {isOffer ? "Viel Erfolg bei Ihrer Mietersuche!" : "Viel Erfolg bei Ihrer Wohnungssuche!"}
         </p>
       </div>
     </div>
