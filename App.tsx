@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { UserRole, LandlordData, TenantData, Stats } from './types';
 import { DEFAULT_STATS } from './constants';
@@ -9,9 +10,10 @@ import MietinteressentenProfil from './components/MietinteressentenProfil';
 import VermieterObjektProfil from './components/VermieterObjektProfil';
 import TenantSelectionPage from './components/TenantSelectionPage';
 import SuccessPage from './components/SuccessPage';
+import VerificationDialog from './components/VerificationDialog';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
-import { sendOfferNotification } from './services/brevoService';
+import { sendOfferNotification, sendVerificationCode } from './services/brevoService';
 
 const MOCK_TENANTS: TenantData[] = [
   {
@@ -32,47 +34,8 @@ const MOCK_TENANTS: TenantData[] = [
     phone: "+49 176 1234567",
     personalIntro: "Ruhiger Mieter, Nichtraucher, keine Haustiere. Suche langfristiges Zuhause nahe der Arbeit.",
     status: "Profil aktiv",
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "M-3892",
-    desiredLocation: "Hamburg Altona, Eimsbüttel",
-    minSqm: 85,
-    minRooms: 3,
-    preferredFloor: "Egal",
-    gardenOrBalcony: "Garten oder Balkon",
-    parkingNeeded: "Stellplatz benötigt",
-    kitchenIncluded: "Ja",
-    buildingCondition: "Neubau",
-    maxRent: 2200,
-    householdIncome: 6200,
-    incomeType: "Selbstständig / Gehalt",
-    incomeDetails: "Marketing Leitung & Freiberuflicher Designer",
-    email: "hamburg-family@example.com",
-    phone: "+49 151 9876543",
-    personalIntro: "Junges Paar mit Kleinkind. Wir legen Wert auf eine grüne Umgebung und gute Nachbarschaft.",
-    status: "Profil aktiv",
-    createdAt: new Date().toISOString()
-  },
-  {
-    id: "M-1055",
-    desiredLocation: "München, Schwabing",
-    minSqm: 40,
-    minRooms: 1,
-    preferredFloor: "Dachgeschoss",
-    gardenOrBalcony: "Egal",
-    parkingNeeded: "Nein",
-    kitchenIncluded: "Ja",
-    buildingCondition: "Gepflegter Altbau",
-    maxRent: 1100,
-    householdIncome: 3100,
-    incomeType: "Rente",
-    incomeDetails: "Pensionierte Lehrerin",
-    email: "m-schwabing@example.com",
-    phone: "+49 160 5556667",
-    personalIntro: "Suche kleine, charmante Wohnung in zentraler Lage. Sehr zuverlässig und ordnungsliebend.",
-    status: "Profil aktiv",
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    isVerified: true
   }
 ];
 
@@ -86,6 +49,12 @@ const App: React.FC = () => {
   const [showSuccess, setShowSuccess] = useState<boolean>(false);
   const [successType, setSuccessType] = useState<'profile' | 'offer'>('profile');
   
+  const [showVerification, setShowVerification] = useState(false);
+  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [verificationError, setVerificationError] = useState<any>(null);
+  const [generatedCode, setGeneratedCode] = useState('');
+  const [pendingData, setPendingData] = useState<any>(null);
+
   const [tempTenantData, setTempTenantData] = useState<any>(null);
   const [tempLandlordData, setTempLandlordData] = useState<any>(null);
   const [activeLandlord, setActiveLandlord] = useState<LandlordData | null>(null);
@@ -93,7 +62,6 @@ const App: React.FC = () => {
   const [stats, setStats] = useState<Stats>(DEFAULT_STATS);
   const [editIndices, setEditIndices] = useState<number[] | undefined>(undefined);
 
-  // Initialisierung aus LocalStorage
   const [landlords, setLandlords] = useState<LandlordData[]>(() => {
     const saved = localStorage.getItem('mm_landlords');
     return saved ? JSON.parse(saved) : [];
@@ -104,18 +72,16 @@ const App: React.FC = () => {
     return saved ? JSON.parse(saved) : MOCK_TENANTS;
   });
 
-  // Effekt zur automatischen Speicherung bei Änderungen
   useEffect(() => {
     localStorage.setItem('mm_landlords', JSON.stringify(landlords));
   }, [landlords]);
 
   useEffect(() => {
     localStorage.setItem('mm_tenants', JSON.stringify(tenants));
-    // Update Stats basierend auf tatsächlichen Daten
     setStats(prev => ({
       ...prev,
-      currentProfiles: tenants.length,
-      totalProfiles: Math.max(prev.totalProfiles, tenants.length + 800) // Dummy Offset für die Optik
+      currentProfiles: tenants.filter(t => t.isVerified).length,
+      totalProfiles: Math.max(prev.totalProfiles, tenants.length + 800)
     }));
   }, [tenants]);
 
@@ -154,7 +120,55 @@ const App: React.FC = () => {
     setEditIndices(undefined);
   };
 
-  const finalizeLandlordReview = (updatedData: Partial<LandlordData>) => {
+  /**
+   * REFI-Korrektur: Nicht-blockierende Verifizierung
+   * Öffnet sofort den Dialog und startet den Versand im Hintergrund.
+   */
+  const initiateVerification = (data: any, type: 'profile' | 'offer') => {
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    setGeneratedCode(code);
+    setPendingData({ data, type });
+    setVerificationError(null);
+    setIsDemoMode(false);
+    
+    // 1. Dialog SOFORT öffnen, um den Ladezustand im Profil-Screen zu beenden
+    setShowVerification(true);
+    
+    // 2. Netzwerk-Aufruf im Hintergrund starten (kein 'await' hier!)
+    sendVerificationCode(data.email, data.phone, code).then(res => {
+      if (!res.success) {
+        console.warn("Echtzeit-Versand fehlgeschlagen, wechsle in Diagnose-Modus.");
+        setIsDemoMode(true);
+        setVerificationError({ type: res.errorType, message: res.details });
+      }
+    }).catch(err => {
+      console.error("Kritischer Backend-Fehler:", err);
+      setIsDemoMode(true);
+      setVerificationError({ type: 'NETWORK_ERROR', message: 'Backend nicht erreichbar.' });
+    });
+  };
+
+  const handleVerify = (code: string) => {
+    if (code === generatedCode) {
+      if (pendingData.type === 'profile') {
+        const newData = { ...pendingData.data, isVerified: true, status: 'Profil aktiv' };
+        setTenants(prev => [...prev, newData]);
+        setSuccessType('profile');
+        setShowTenantProfile(false);
+      } else {
+        const newData = { ...pendingData.data, isVerified: true };
+        setLandlords(prev => [...prev, newData]);
+        setSuccessType('offer');
+        setShowTenantSelection(false);
+      }
+      setShowVerification(false);
+      setShowSuccess(true);
+    } else {
+      alert("Falscher Code. Bitte prüfen Sie Ihre E-Mails.");
+    }
+  };
+
+  const finalizeLandlordReview = async (updatedData: Partial<LandlordData>) => {
     const timestamp = new Date().toISOString();
     const randomId = Math.floor(1000 + Math.random() * 9000);
     
@@ -168,27 +182,13 @@ const App: React.FC = () => {
     const zipCode = zipCodeMatch ? zipCodeMatch[0] : 'unbekannt';
 
     const newData: LandlordData = {
-      address: updatedData.address || '',
-      sqm: Number(updatedData.sqm) || 0,
-      rooms: Number(updatedData.rooms) || 0,
-      floor: updatedData.floor || '',
-      gardenOrBalcony: updatedData.gardenOrBalcony || '',
-      parkingDetails: updatedData.parkingDetails || '',
-      kitchenDetails: updatedData.kitchenDetails || '',
-      buildingAge: updatedData.buildingAge || '',
-      rentCold: cold,
-      serviceCharges: extra,
-      parkingRent: park,
-      otherCosts: other,
-      rentWarm: rentWarm,
-      zipCode: zipCode,
-      email: updatedData.email || '',
-      phone: updatedData.phone || '',
+      ...updatedData as any,
+      rentWarm,
+      zipCode,
       id: `V-${randomId}`,
       propertyTitle: updatedData.address ? updatedData.address.split(',')[0] : 'Mietobjekt',
       status: 'aktiv',
       createdAt: timestamp,
-      images: updatedData.images
     };
     
     setActiveLandlord(newData);
@@ -202,52 +202,24 @@ const App: React.FC = () => {
     for (const tenantId of selectedTenantIds) {
       const tenant = tenants.find(t => t.id === tenantId);
       if (tenant) {
-        await sendOfferNotification(tenant.email, tenant.phone, activeLandlord.propertyTitle || 'Objekt');
+        sendOfferNotification(tenant.email, tenant.phone, activeLandlord.propertyTitle || 'Objekt');
       }
     }
 
-    setLandlords(prev => [...prev, activeLandlord]);
-    setStats(prev => ({ 
-      ...prev, 
-      totalProperties: prev.totalProperties + 1, 
-      currentProperties: prev.currentProperties + 1,
-      offersSent: prev.offersSent + selectedTenantIds.length
-    }));
-
-    setSuccessType('offer');
-    setShowTenantSelection(false);
-    setShowSuccess(true);
+    initiateVerification(activeLandlord, 'offer');
   };
 
-  const finalizeTenant = (updatedData: Partial<TenantData>) => {
+  const finalizeTenant = async (updatedData: Partial<TenantData>) => {
     const timestamp = new Date().toISOString();
     const randomId = Math.floor(1000 + Math.random() * 9000);
     const newData: TenantData = {
-      desiredLocation: updatedData.desiredLocation || '',
-      minSqm: Number(updatedData.minSqm) || 0,
-      minRooms: Number(updatedData.minRooms) || 0,
-      preferredFloor: updatedData.preferredFloor || '',
-      gardenOrBalcony: updatedData.gardenOrBalcony || '',
-      parkingNeeded: updatedData.parkingNeeded || '',
-      kitchenIncluded: updatedData.kitchenIncluded || '',
-      buildingCondition: updatedData.buildingCondition || '',
-      maxRent: Number(updatedData.maxRent) || 0,
-      householdIncome: Number(updatedData.householdIncome) || 0,
-      incomeType: updatedData.incomeType || '',
-      incomeDetails: updatedData.incomeDetails || '',
-      email: updatedData.email || '',
-      phone: updatedData.phone || '',
-      personalIntro: updatedData.personalIntro,
-      profileImage: updatedData.profileImage,
+      ...updatedData as any,
       id: `M-${randomId}`,
-      status: 'Profil aktiv', 
+      status: 'Profil nicht bestätigt', 
       createdAt: timestamp
     };
     
-    setTenants(prev => [...prev, newData]);
-    setSuccessType('profile');
-    setShowTenantProfile(false);
-    setShowSuccess(true);
+    initiateVerification(newData, 'profile');
   };
 
   const handleResetToLanding = () => {
@@ -261,16 +233,24 @@ const App: React.FC = () => {
     setTempTenantData(null);
     setTempLandlordData(null);
     setActiveLandlord(null);
+    setShowVerification(false);
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-[#05070a] text-white overflow-x-hidden">
-      <Navbar 
-        onHome={handleResetToLanding} 
-        onWorkbench={() => setShowWorkbench(true)}
-      />
+      <Navbar onHome={handleResetToLanding} onWorkbench={() => setShowWorkbench(true)} />
 
       <main className="flex-grow">
+        {showVerification && (
+          <VerificationDialog 
+            email={pendingData?.data?.email} 
+            onVerify={handleVerify} 
+            onCancel={() => setShowVerification(false)} 
+            demoCode={isDemoMode ? generatedCode : undefined}
+            errorDetails={verificationError}
+          />
+        )}
+
         {showLegal ? (
           <LegalPage onClose={() => setShowLegal(false)} />
         ) : showSuccess ? (

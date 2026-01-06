@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { TenantData } from '../types';
 import { 
@@ -8,7 +9,7 @@ import { GoogleGenAI } from "@google/genai";
 
 interface MietinteressentenProfilProps {
   data: Partial<TenantData>;
-  onConfirm: (updatedData: Partial<TenantData>) => void;
+  onConfirm: (updatedData: Partial<TenantData>) => Promise<void>;
   onCancel: () => void;
   onEdit: (indices: number[]) => void;
 }
@@ -35,12 +36,10 @@ const MietinteressentenProfil: React.FC<MietinteressentenProfilProps> = ({ data,
   const [personalIntro, setPersonalIntro] = useState<string>(data.personalIntro || "");
   const [showModal, setShowModal] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  /**
-   * Formatiert Zahlen mit Tausenderpunkt (z.B. 1.500)
-   */
   const formatNumber = (num: number | string | undefined) => {
     if (num === undefined || num === null || num === '') return '—';
     const cleanNum = typeof num === 'string' ? num.replace(/[^0-9.-]+/g, "") : num.toString();
@@ -49,31 +48,17 @@ const MietinteressentenProfil: React.FC<MietinteressentenProfilProps> = ({ data,
     return new Intl.NumberFormat('de-DE').format(n);
   };
 
-  /**
-   * Formatiert die Telefonnummer strikt nach Vorgabe: +49 170 234567
-   */
   const formatPhone = (phone: string | undefined) => {
     if (!phone || phone.toLowerCase() === 'nein') return phone || '—';
-    
-    // Entferne alle Zeichen außer Ziffern
     let cleaned = phone.replace(/\D/g, '');
-    
-    // Normalisierung: Entferne führende 0049, 49 oder 0
-    if (cleaned.startsWith('0049')) {
-      cleaned = cleaned.substring(4);
-    } else if (cleaned.startsWith('49')) {
-      cleaned = cleaned.substring(2);
-    } else if (cleaned.startsWith('0')) {
-      cleaned = cleaned.substring(1);
-    }
-
-    // Wenn die Nummer nun eine plausible Länge hat
+    if (cleaned.startsWith('0049')) cleaned = cleaned.substring(4);
+    else if (cleaned.startsWith('49')) cleaned = cleaned.substring(2);
+    else if (cleaned.startsWith('0')) cleaned = cleaned.substring(1);
     if (cleaned.length >= 3) {
       const prefix = cleaned.substring(0, 3);
       const rest = cleaned.substring(3);
       return `+49 ${prefix} ${rest}`;
     }
-
     return phone.trim();
   };
 
@@ -134,27 +119,6 @@ const MietinteressentenProfil: React.FC<MietinteressentenProfilProps> = ({ data,
     if (file) processImageFile(file);
   };
 
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-    
-    const file = e.dataTransfer.files?.[0];
-    if (file) processImageFile(file);
-  };
-
   const generateAIAvatar = async (prompt: string) => {
     setIsGenerating(true);
     const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
@@ -186,12 +150,20 @@ const MietinteressentenProfil: React.FC<MietinteressentenProfilProps> = ({ data,
     }
   };
 
-  const handleFinalConfirm = () => {
-    onConfirm({
-      ...data,
-      profileImage,
-      personalIntro
-    });
+  const handleFinalConfirm = async () => {
+    if (isSubmitting) return;
+    setIsSubmitting(true);
+    try {
+      await onConfirm({
+        ...data,
+        profileImage,
+        personalIntro
+      });
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -205,7 +177,7 @@ const MietinteressentenProfil: React.FC<MietinteressentenProfilProps> = ({ data,
             Ihr Mieterprofil
           </h1>
           
-          <div className="p-6 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 flex gap-4 items-center animate-fade-in shadow-lg shadow-indigo-600/5">
+          <div className="p-6 rounded-2xl bg-indigo-500/5 border border-indigo-500/10 flex gap-4 items-center animate-fade-in shadow-lg">
             <div className="w-10 h-10 rounded-xl bg-indigo-500/10 flex items-center justify-center shrink-0 border border-indigo-500/20">
               <Info size={20} className="text-indigo-400" />
             </div>
@@ -299,7 +271,6 @@ const MietinteressentenProfil: React.FC<MietinteressentenProfilProps> = ({ data,
                         {item.value || '—'}
                       </div>
                     </div>
-                    <ArrowRight size={16} className="text-indigo-500 opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0 hidden md:block" />
                   </div>
                 ))}
               </div>
@@ -311,17 +282,28 @@ const MietinteressentenProfil: React.FC<MietinteressentenProfilProps> = ({ data,
         <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-4">
           <button 
             onClick={onCancel}
-            className="w-full sm:w-auto px-8 py-5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all"
+            disabled={isSubmitting}
+            className="w-full sm:w-auto px-8 py-5 bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl font-bold flex items-center justify-center gap-2 transition-all disabled:opacity-50"
           >
             <ArrowLeft size={20} />
             Abbrechen
           </button>
           <button 
             onClick={handleFinalConfirm}
-            className="w-full sm:w-auto px-12 py-5 bg-indigo-600 hover:bg-indigo-500 rounded-2xl font-bold text-white shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-3 transition-all active:scale-[0.98]"
+            disabled={isSubmitting}
+            className="w-full sm:w-auto px-12 py-5 bg-indigo-600 hover:bg-indigo-500 rounded-2xl font-bold text-white shadow-xl shadow-indigo-600/20 flex items-center justify-center gap-3 transition-all active:scale-[0.98] disabled:opacity-70"
           >
-            Profil bestätigen & speichern
-            <CheckCircle size={22} />
+            {isSubmitting ? (
+              <>
+                <Loader2 className="animate-spin" size={22} />
+                Wird verarbeitet...
+              </>
+            ) : (
+              <>
+                Profil bestätigen & speichern
+                <CheckCircle size={22} />
+              </>
+            )}
           </button>
         </div>
       </div>
@@ -349,25 +331,15 @@ const MietinteressentenProfil: React.FC<MietinteressentenProfilProps> = ({ data,
                   Eigenes Foto hochladen
                 </h3>
                 <div 
-                  onDragOver={handleDragOver}
-                  onDragLeave={handleDragLeave}
-                  onDrop={handleDrop}
                   onClick={() => fileInputRef.current?.click()}
-                  className={`aspect-square rounded-[2rem] border-2 border-dashed flex flex-col items-center justify-center group cursor-pointer transition-all ${
-                    isDragging 
-                    ? 'border-indigo-500 bg-indigo-500/10 scale-[1.01]' 
-                    : 'border-white/10 bg-white/5 hover:border-indigo-500/50'
-                  }`}
+                  className={`aspect-square rounded-[2rem] border-2 border-dashed flex flex-col items-center justify-center group cursor-pointer transition-all border-white/10 bg-white/5 hover:border-indigo-500/50`}
                 >
-                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 transition-all ${
-                    isDragging ? 'bg-indigo-500 scale-110 shadow-lg shadow-indigo-500/50' : 'bg-indigo-600/10 group-hover:scale-110'
-                  }`}>
-                    <ImageIcon className={isDragging ? 'text-white' : 'text-indigo-400'} size={28} />
+                  <div className={`w-14 h-14 rounded-2xl flex items-center justify-center mb-4 bg-indigo-600/10 group-hover:scale-110 transition-all`}>
+                    <ImageIcon className='text-indigo-400' size={28} />
                   </div>
-                  <span className={`font-bold text-sm ${isDragging ? 'text-indigo-400' : 'text-white'}`}>
-                    {isDragging ? 'Hier loslassen' : 'Datei auswählen'}
+                  <span className={`font-bold text-sm text-white`}>
+                    Datei auswählen
                   </span>
-                  <span className="text-[10px] text-gray-500 mt-2">oder Drag & Drop</span>
                   <input 
                     type="file" 
                     ref={fileInputRef} 
@@ -388,7 +360,6 @@ const MietinteressentenProfil: React.FC<MietinteressentenProfilProps> = ({ data,
                   <div className="aspect-square rounded-[2rem] bg-indigo-600/5 border border-indigo-500/20 flex flex-col items-center justify-center animate-pulse">
                     <Loader2 size={40} className="text-indigo-500 animate-spin mb-4" />
                     <span className="text-indigo-400 font-bold text-sm">Generiere Grafik...</span>
-                    <p className="text-[10px] text-indigo-400/60 mt-2 uppercase tracking-widest font-black">ca. 5-10 Sekunden</p>
                   </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-2 max-h-[380px] overflow-y-auto pr-2 custom-scrollbar">
@@ -411,22 +382,5 @@ const MietinteressentenProfil: React.FC<MietinteressentenProfilProps> = ({ data,
     </div>
   );
 };
-
-// Hilfskomponente für den Pfeil
-const ArrowRight = ({ size, className }: { size: number, className?: string }) => (
-  <svg 
-    width={size} 
-    height={size} 
-    viewBox="0 0 24 24" 
-    fill="none" 
-    stroke="currentColor" 
-    strokeWidth="2" 
-    strokeLinecap="round" 
-    strokeLinejoin="round" 
-    className={className}
-  >
-    <path d="M5 12h14m-7-7 7 7-7 7" />
-  </svg>
-);
 
 export default MietinteressentenProfil;

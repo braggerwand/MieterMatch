@@ -1,10 +1,11 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { LandlordData, TenantData, Stats, MatchResult } from '../types';
 import { getAUMatching } from '../services/geminiService';
 import { sendOfferNotification } from '../services/brevoService';
 import { 
   Sparkles, Mail, Phone, Trash2, Home, Users, ArrowRight, 
-  CheckCircle, Search, LayoutDashboard, User, MapPin, Euro, Info, X
+  CheckCircle, Search, LayoutDashboard, User, MapPin, Euro, Info, X,
+  Globe, Activity
 } from 'lucide-react';
 
 interface WorkbenchProps {
@@ -22,6 +23,15 @@ const Workbench: React.FC<WorkbenchProps> = ({ landlords, tenants, stats, onAddP
   const [matches, setMatches] = useState<MatchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [notifiedTenants, setNotifiedTenants] = useState<string[]>([]);
+  const [currentIp, setCurrentIp] = useState<string>('Lade...');
+
+  useEffect(() => {
+    // Abrufen der aktuellen IP-Adresse
+    fetch('https://api.ipify.org?format=json')
+      .then(res => res.json())
+      .then(data => setCurrentIp(data.ip))
+      .catch(() => setCurrentIp('Nicht ermittelbar'));
+  }, []);
 
   const runMatching = async (property: LandlordData) => {
     setLoading(true);
@@ -116,14 +126,26 @@ const Workbench: React.FC<WorkbenchProps> = ({ landlords, tenants, stats, onAddP
           )}
         </div>
 
-        {/* Stats Summary */}
-        <div className="pt-6 border-t border-white/5 space-y-2">
-           <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-gray-500">
-             <span>System Status</span>
-             <span className="text-green-500">Online</span>
+        {/* Stats Summary & IP Display */}
+        <div className="pt-6 border-t border-white/5 space-y-4">
+           <div className="space-y-2">
+             <div className="flex justify-between text-[9px] font-black uppercase tracking-widest text-gray-500">
+               <span>System Status</span>
+               <span className="text-green-500 flex items-center gap-1">
+                 <Activity size={10} className="animate-pulse" /> Live
+               </span>
+             </div>
+             <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
+               <div className="w-[100%] h-full bg-indigo-500"></div>
+             </div>
            </div>
-           <div className="h-1.5 bg-white/5 rounded-full overflow-hidden">
-             <div className="w-[85%] h-full bg-indigo-500"></div>
+
+           <div className="p-3 bg-white/5 rounded-xl border border-white/5 flex items-center justify-between group hover:border-indigo-500/30 transition-all">
+             <div className="flex items-center gap-2">
+               <Globe size={14} className="text-indigo-400" />
+               <span className="text-[9px] font-black uppercase tracking-widest text-gray-500">Aktuelle IP</span>
+             </div>
+             <span className="text-[11px] font-mono text-indigo-300 font-bold tracking-wider">{currentIp}</span>
            </div>
         </div>
       </div>
@@ -226,7 +248,7 @@ const Workbench: React.FC<WorkbenchProps> = ({ landlords, tenants, stats, onAddP
              </div>
           </div>
         ) : (
-          /* Matching Ansicht für ausgewählte Immobilie (bestehende Logik) */
+          /* Matching Ansicht für ausgewählte Immobilie */
           <div className="flex flex-col h-full overflow-hidden animate-fade-in">
             <div className="mb-8 flex items-center justify-between">
               <div>

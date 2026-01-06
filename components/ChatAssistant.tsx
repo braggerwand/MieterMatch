@@ -31,6 +31,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ role, onCancel, onFinish,
   const [isTyping, setIsTyping] = useState(false);
   const [isAutoFilling, setIsAutoFilling] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const tenantQuestions: QuestionConfig[] = [
     { 
@@ -269,6 +270,13 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ role, onCancel, onFinish,
   const [collectedData, setCollectedData] = useState<any>(initialData || {});
   const [messages, setMessages] = useState<{sender: 'bot' | 'user', text: string, hint?: string, icon?: React.ReactNode, qNum?: number, category?: string}[]>([]);
 
+  // Automatischer Fokus auf das Eingabefeld
+  useEffect(() => {
+    if (!isTyping && !isAutoFilling && inputRef.current) {
+      inputRef.current.focus();
+    }
+  }, [stepIndex, isTyping, isAutoFilling, messages]);
+
   useEffect(() => {
     const firstQIndex = activeQuestionIndices[0];
     const firstQ = allQuestions[firstQIndex];
@@ -364,7 +372,6 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ role, onCancel, onFinish,
       const text = result.text;
       if (!text) throw new Error("Keine Antwort von der KI erhalten.");
 
-      // Robustes Parsing: Entferne evtl. vorhandene Markdown-Blöcke
       const cleanJson = text.replace(/```json\n?|```/g, "").trim();
       const autoData = JSON.parse(cleanJson);
       
@@ -536,6 +543,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ role, onCancel, onFinish,
           <div className={`absolute -inset-1 bg-gradient-to-r ${role === UserRole.LANDLORD ? 'from-blue-500/20 to-indigo-500/20' : 'from-indigo-500/20 to-blue-500/20'} rounded-[2.5rem] blur opacity-50`}></div>
           <div className="relative group">
             <input 
+              ref={inputRef}
               type="text"
               className="w-full bg-[#0d1117] border border-white/10 rounded-[2.5rem] py-8 pl-10 pr-24 focus:outline-none focus:ring-4 focus:ring-indigo-500/20 text-2xl font-bold transition-all placeholder:text-gray-700 shadow-2xl text-white"
               placeholder={allQuestions[activeQuestionIndices[stepIndex]]?.placeholder || "Ihre Antwort..."}
