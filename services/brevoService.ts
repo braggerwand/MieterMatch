@@ -1,100 +1,27 @@
 
 /**
- * Brevo Proxy Service - Verbunden mit Flask Backend auf Port 5000
+ * Brevo Proxy Service - Simulation für den Betrieb ohne Backend
  */
-
-const getBackendUrl = () => {
-  const host = window.location.hostname;
-  
-  // Wenn wir auf localhost sind
-  if (host === 'localhost' || host === '127.0.0.1' || !host) {
-    return `http://127.0.0.1:5000/api`;
-  }
-  
-  // In einer VM/Google Cloud nutzen wir die aktuelle IP/Domain auf Port 5000
-  // Wir nutzen explizit http, da Flask standardmäßig nicht auf https lauscht
-  return `http://${host}:5000/api`;
-};
-
-const BACKEND_URL = getBackendUrl();
 
 export interface BrevoResponse {
   success: boolean;
-  errorType?: 'CORS_BLOCKED' | 'INVALID_KEY' | 'MISSING_KEY' | 'NETWORK_ERROR' | 'TIMEOUT' | 'API_ERROR';
+  errorType?: 'NETWORK_ERROR' | 'API_ERROR';
   details?: string;
 }
 
-async function fetchWithTimeout(url: string, options: any, timeout = 10000) {
-  const controller = new AbortController();
-  const id = setTimeout(() => controller.abort(), timeout);
-  
-  try {
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal
-    });
-    clearTimeout(id);
-    return response;
-  } catch (error: any) {
-    clearTimeout(id);
-    throw error;
-  }
-}
-
 export const sendVerificationCode = async (email: string, phone: string, code: string): Promise<BrevoResponse> => {
-  try {
-    const targetUrl = `${BACKEND_URL}/send-verification`;
-    console.log(`Versuche Backend zu erreichen: ${targetUrl}`);
-    
-    const response = await fetchWithTimeout(targetUrl, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, code, phone })
-    });
-
-    if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        return { 
-          success: false, 
-          errorType: 'API_ERROR', 
-          details: errorData.details || `Server antwortete mit Status ${response.status}`
-        };
-    }
-
-    const result = await response.json();
-    return { 
-      success: result.success, 
-      errorType: result.error, 
-      details: result.details 
-    };
-  } catch (error: any) {
-    console.error("Brevo Service Netzwerkfehler:", error);
-    
-    if (error.name === 'AbortError') {
-      return { success: false, errorType: 'TIMEOUT', details: "Das Backend antwortet zu langsam." };
-    }
-
-    return { 
-      success: false, 
-      errorType: 'NETWORK_ERROR', 
-      details: `Konnte Backend unter ${BACKEND_URL} nicht erreichen. Bitte stellen Sie sicher, dass 'python3 main.py' läuft und Port 5000 in der Firewall offen ist.` 
-    };
-  }
+  // Da kein Backend vorhanden ist, simulieren wir den Erfolg sofort.
+  // Der Code wird in der App.tsx im "Demo-Modus" abgefangen und angezeigt.
+  console.log(`[SIMULATION] Verifizierungscode für ${email}: ${code}`);
+  
+  return { 
+    success: false, // Wir geben false zurück, damit die App in den hilfreichen Demo-Modus schaltet
+    errorType: 'NETWORK_ERROR', 
+    details: 'Lokaler Testmodus aktiv (Kein Backend erforderlich)' 
+  };
 };
 
 export const sendOfferNotification = async (email: string, phone: string, propertyTitle: string): Promise<BrevoResponse> => {
-  try {
-    const response = await fetchWithTimeout(`${BACKEND_URL}/send-offer`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, propertyTitle })
-    }, 5000);
-    
-    if (!response.ok) return { success: false, errorType: 'API_ERROR' };
-    
-    const result = await response.json();
-    return { success: result.success };
-  } catch (error) {
-    return { success: false, errorType: 'NETWORK_ERROR' };
-  }
+  console.log(`[SIMULATION] Angebot für ${propertyTitle} an ${email} gesendet.`);
+  return { success: true };
 };

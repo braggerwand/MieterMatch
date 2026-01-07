@@ -4,7 +4,6 @@ import { UserRole, LandlordData, TenantData, Stats } from './types';
 import { DEFAULT_STATS } from './constants';
 import LandingPage from './components/LandingPage';
 import ChatAssistant from './components/ChatAssistant';
-import Workbench from './components/Workbench';
 import LegalPage from './components/LegalPage';
 import MietinteressentenProfil from './components/MietinteressentenProfil';
 import VermieterObjektProfil from './components/VermieterObjektProfil';
@@ -14,34 +13,10 @@ import VerificationDialog from './components/VerificationDialog';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
 import { sendOfferNotification, sendVerificationCode } from './services/brevoService';
-
-const MOCK_TENANTS: TenantData[] = [
-  {
-    id: "M-7241",
-    desiredLocation: "Berlin Mitte, Prenzlauer Berg",
-    minSqm: 65,
-    minRooms: 2,
-    preferredFloor: "Zwischengeschoss",
-    gardenOrBalcony: "Balkon bevorzugt",
-    parkingNeeded: "Egal",
-    kitchenIncluded: "Ja",
-    buildingCondition: "Altbau saniert",
-    maxRent: 1600,
-    householdIncome: 4800,
-    incomeType: "Gehalt (unbefristet)",
-    incomeDetails: "Senior Software Engineer bei TechCorp",
-    email: "berlin-living@example.com",
-    phone: "+49 176 1234567",
-    personalIntro: "Ruhiger Mieter, Nichtraucher, keine Haustiere. Suche langfristiges Zuhause nahe der Arbeit.",
-    status: "Profil aktiv",
-    createdAt: new Date().toISOString(),
-    isVerified: true
-  }
-];
+import { fetchProfiles, saveProfileToDb } from './services/profileService';
 
 const App: React.FC = () => {
   const [currentRole, setCurrentRole] = useState<UserRole>(UserRole.NONE);
-  const [showWorkbench, setShowWorkbench] = useState(false);
   const [showLegal, setShowLegal] = useState<boolean>(false);
   const [showTenantProfile, setShowTenantProfile] = useState<boolean>(false);
   const [showLandlordProfile, setShowLandlordProfile] = useState<boolean>(false);
@@ -62,33 +37,49 @@ const App: React.FC = () => {
   const [stats, setStats] = useState<Stats>(DEFAULT_STATS);
   const [editIndices, setEditIndices] = useState<number[] | undefined>(undefined);
 
-  const [landlords, setLandlords] = useState<LandlordData[]>(() => {
-    const saved = localStorage.getItem('mm_landlords');
-    return saved ? JSON.parse(saved) : [];
-  });
-  
-  const [tenants, setTenants] = useState<TenantData[]>(() => {
-    const saved = localStorage.getItem('mm_tenants');
-    return saved ? JSON.parse(saved) : MOCK_TENANTS;
-  });
+  const [landlords, setLandlords] = useState<LandlordData[]>([]);
+  const [tenants, setTenants] = useState<TenantData[]>([]);
+
+  // Initiales Laden aus der Cloud-DB
+  useEffect(() => {
+    const loadData = async () => {
+      const dbTenants = await fetchProfiles('TENANT');
+      const dbLandlords = await fetchProfiles('LANDLORD');
+      
+      // Migration: Falls noch lokale Daten existieren, diese hochladen
+      const localTenants = JSON.parse(localStorage.getItem('mm_tenants') || '[]');
+      const localLandlords = JSON.parse(localStorage.getItem('mm_landlords') || '[]');
+      
+      if (localTenants.length > 0 && dbTenants.length === 0) {
+        for (const t of localTenants) await saveProfileToDb(t);
+        setTenants(localTenants);
+        localStorage.removeItem('mm_tenants');
+      } else {
+        setTenants(dbTenants.length > 0 ? dbTenants : []);
+      }
+
+      if (localLandlords.length > 0 && dbLandlords.length === 0) {
+        for (const l of localLandlords) await saveProfileToDb(l);
+        setLandlords(localLandlords);
+        localStorage.removeItem('mm_landlords');
+      } else {
+        setLandlords(dbLandlords.length > 0 ? dbLandlords : []);
+      }
+    };
+    loadData();
+  }, []);
 
   useEffect(() => {
-    localStorage.setItem('mm_landlords', JSON.stringify(landlords));
-  }, [landlords]);
-
-  useEffect(() => {
-    localStorage.setItem('mm_tenants', JSON.stringify(tenants));
     setStats(prev => ({
       ...prev,
       currentProfiles: tenants.filter(t => t.isVerified).length,
-      totalProfiles: Math.max(prev.totalProfiles, tenants.length + 800)
+      totalProfiles: Math.max(800, tenants.length + 800)
     }));
   }, [tenants]);
 
   const startAssistant = (role: UserRole) => {
     setCurrentRole(role);
     setEditIndices(undefined);
-    setShowWorkbench(false);
     setShowLegal(false);
     setShowTenantProfile(false);
     setShowLandlordProfile(false);
@@ -120,10 +111,6 @@ const App: React.FC = () => {
     setEditIndices(undefined);
   };
 
-  /**
-   * REFI-Korrektur: Nicht-blockierende Verifizierung
-   * Öffnet sofort den Dialog und startet den Versand im Hintergrund.
-   */
   const initiateVerification = (data: any, type: 'profile' | 'offer') => {
     const code = Math.floor(100000 + Math.random() * 900000).toString();
     setGeneratedCode(code);
@@ -131,10 +118,8 @@ const App: React.FC = () => {
     setVerificationError(null);
     setIsDemoMode(false);
     
-    // 1. Dialog SOFORT öffnen, um den Ladezustand im Profil-Screen zu beenden
     setShowVerification(true);
     
-    // 2. Netzwerk-Aufruf im Hintergrund starten (kein 'await' hier!)
     sendVerificationCode(data.email, data.phone, code).then(res => {
       if (!res.success) {
         console.warn("Echtzeit-Versand fehlgeschlagen, wechsle in Diagnose-Modus.");
@@ -148,15 +133,17 @@ const App: React.FC = () => {
     });
   };
 
-  const handleVerify = (code: string) => {
+  const handleVerify = async (code: string) => {
     if (code === generatedCode) {
       if (pendingData.type === 'profile') {
         const newData = { ...pendingData.data, isVerified: true, status: 'Profil aktiv' };
+        await saveProfileToDb(newData); // Cloud Save
         setTenants(prev => [...prev, newData]);
         setSuccessType('profile');
         setShowTenantProfile(false);
       } else {
         const newData = { ...pendingData.data, isVerified: true };
+        await saveProfileToDb(newData); // Cloud Save
         setLandlords(prev => [...prev, newData]);
         setSuccessType('offer');
         setShowTenantSelection(false);
@@ -224,7 +211,6 @@ const App: React.FC = () => {
 
   const handleResetToLanding = () => {
     setCurrentRole(UserRole.NONE);
-    setShowWorkbench(false);
     setShowLegal(false);
     setShowTenantProfile(false);
     setShowLandlordProfile(false);
@@ -238,7 +224,7 @@ const App: React.FC = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-[#05070a] text-white overflow-x-hidden">
-      <Navbar onHome={handleResetToLanding} onWorkbench={() => setShowWorkbench(true)} />
+      <Navbar onHome={handleResetToLanding} />
 
       <main className="flex-grow">
         {showVerification && (
@@ -275,14 +261,6 @@ const App: React.FC = () => {
             onConfirm={finalizeLandlordReview} 
             onCancel={() => setShowLandlordProfile(false)} 
             onEdit={startEditMode}
-          />
-        ) : showWorkbench ? (
-          <Workbench 
-            landlords={landlords} 
-            tenants={tenants} 
-            stats={stats}
-            onAddProperty={() => startAssistant(UserRole.LANDLORD)}
-            onClose={() => setShowWorkbench(false)}
           />
         ) : currentRole !== UserRole.NONE ? (
           <ChatAssistant 
