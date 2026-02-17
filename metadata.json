@@ -1,0 +1,8 @@
+{
+  "name": "MieterMatch",
+  "description": "KI-gestützte Plattform zur Zusammenführung von Vermietern und passenden Mietinteressenten mit sicherem Python-Backend.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
